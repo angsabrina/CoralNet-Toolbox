@@ -18,6 +18,7 @@ from coralnet_toolbox.QtConfidenceWindow import ConfidenceWindow
 from coralnet_toolbox.QtImageWindow import ImageWindow
 from coralnet_toolbox.QtLabelWindow import LabelWindow
 from coralnet_toolbox.QtPatchSampling import PatchSamplingDialog
+from coralnet_toolbox.QtPatchEditorWindow import PatchEditorWindowDialog
 from coralnet_toolbox.QtEventFilter import GlobalEventFilter
 
 from coralnet_toolbox.IO import (
@@ -146,6 +147,7 @@ class MainWindow(QMainWindow):
 
         # Create dialogs (Machine Learning)
         self.patch_annotation_sampling_dialog = PatchSamplingDialog(self)
+        self.patch_editor_window_dialog = PatchEditorWindowDialog(self)
         self.detect_import_dataset_dialog = DetectImportDatasetDialog(self)
         self.segment_import_dataset_dialog = SegmentImportDatasetDialog(self)
         self.classify_export_dataset_dialog = ClassifyExportDatasetDialog(self)
@@ -341,6 +343,11 @@ class MainWindow(QMainWindow):
         # self.coralnet_model_api_action.triggered.connect(
         #     lambda: QMessageBox.information(self, "Placeholder", "This is not yet implemented."))
         # self.coralnet_menu.addAction(self.coralnet_model_api_action)
+
+        # Patch Editor menu
+        self.patch_edit_action = QAction("Patch Editor", self)
+        self.patch_edit_action.triggered.connect(self.open_patch_edit_window_dialog)
+        self.menu_bar.addAction(self.patch_edit_action)        
 
         # Ultralytics menu
         self.ml_menu = self.menu_bar.addMenu("Ultralytics")
@@ -1034,6 +1041,17 @@ class MainWindow(QMainWindow):
 
         self.patch_annotation_sampling_dialog = None
         self.patch_annotation_sampling_dialog = PatchSamplingDialog(self)
+
+    def open_patch_edit_window_dialog(self):
+        try:
+            self.untoggle_all_tools()
+            self.patch_editor_window_dialog.exec_()
+        except Exception as e:
+            QMessageBox.critical(self, "Critical Error", f"{e}")
+
+        self.patch_editor_window_dialog = None
+        self.patch_editor_window_dialog = PatchEditorWindowDialog(self)
+
 
     def open_import_dataset_dialog(self):
         try:
