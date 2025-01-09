@@ -2,30 +2,62 @@ import warnings
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-import random
+from PyQt5.QtWidgets import (QGridLayout, QLabel, QDialog, QPushButton)
+from PyQt5.QtGui import QPixmap
+from PyQt5.QtWidgets import QFileDialog
 
-from PyQt5.QtCore import Qt, pyqtSignal, QPointF
-from PyQt5.QtGui import QColor, QPen, QBrush
-from PyQt5.QtWidgets import (QApplication, QGraphicsView, QGraphicsScene, QCheckBox,
-                             QVBoxLayout, QLabel, QDialog, QHBoxLayout, QPushButton,
-                             QComboBox, QSpinBox, QGraphicsPixmapItem, QGraphicsRectItem,
-                             QFormLayout, QButtonGroup)
-
+from coralnet_toolbox.QtImageWindow import ImageWindow
+from coralnet_toolbox.Icons import get_icon
 
 # ----------------------------------------------------------------------------------------------------------------------
 # Classes
 # ----------------------------------------------------------------------------------------------------------------------
 
 class PatchEditorWindowDialog(QDialog):
-    annotationsSampled = pyqtSignal(list, bool)  # Signal to emit the sampled annotations and apply to all flag
-
+    
     def __init__(self, main_window, parent=None):
         super().__init__(parent)
-        self.annotation_window = main_window.annotation_window
-        self.label_window = main_window.label_window
-        self.image_window = main_window.image_window
-
+        
         self.setWindowTitle("Patch Editor")
-        self.setWindowState(Qt.WindowMaximized)  # Ensure the dialog is maximized
+        self.setWindowIcon(get_icon("coral.png"))
+        # self.setWindowState(Qt.WindowMaximized)  # Ensure the dialog is maximized
 
-        self.layout = QVBoxLayout(self)
+        self.layout = QGridLayout()
+        self.setLayout(self.layout)
+
+        self.loadButton = QPushButton("Load Images")
+        self.loadButton.clicked.connect(self.load_images)
+        self.layout.addWidget(self.loadButton, 0, 0)
+
+    def load_images(self):
+        directory = QFileDialog.getExistingDirectory(self, "Select Directory")
+
+        if directory:
+            import os
+
+            self._base_dir = os.getcwd()
+            self._images_dir = os.path.join(self._base_dir, directory)
+
+            self.list_of_images = os.listdir(directory)
+            self.list_of_images = sorted(self.list_of_images)
+
+            print("list images: " + str(self.list_of_images))
+
+            # Length of Images
+            print('Number of Images in the selected folder: {}'.format(len(self.list_of_images)))
+
+        # Create and add image labels to the grid
+        row, col = 0, 0
+        for image in self.list_of_images:
+            image_path = '{}\\{}'.format(self._images_dir, image)
+            label = QLabel()
+            pixmap = QPixmap(image_path)
+            label.setPixmap(pixmap)
+            label.setScaledContents(True)
+            label.setMaximumSize(600, 400) # limit image size
+            self.layout.addWidget(label, row, col)
+
+            col += 1
+            if col > 2:  # 3 columns per row
+                col = 0
+                row += 1
