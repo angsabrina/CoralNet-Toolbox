@@ -351,7 +351,7 @@ class MainWindow(QMainWindow):
         # Patch Editor menu
         self.patch_edit_action = QAction("Patch Editor", self)
         self.patch_edit_action.triggered.connect(self.open_patch_edit_window_dialog)
-        self.menu_bar.addAction(self.patch_edit_action)        
+        self.menu_bar.addAction(self.patch_edit_action)    
 
         # Ultralytics menu
         self.ml_menu = self.menu_bar.addMenu("Ultralytics")
