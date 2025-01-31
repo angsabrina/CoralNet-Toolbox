@@ -113,12 +113,13 @@ class PatchEditorWindowDialog(QDialog):
             self.list_of_images = os.listdir(directory)
             self.list_of_images = sorted(self.list_of_images)
 
-            print("list images: " + str(self.list_of_images))
+            # print("list images: " + str(self.list_of_images))
 
-            # Length of Images
-            print('Number of Images in the selected folder: {}'.format(len(self.list_of_images)))
+            # Set directory details in dock1, widget_one
+            self.widget_one.directoryName.setText('Directory: {}'.format(directory))
+            self.widget_one.labelCount.setText('Label Count: {}'.format(len(self.list_of_images)))
 
-            # Clear the existing layout
+            # Clear the existing layout in widget_two (in dock2)
             self.clear_layout(self.widget_two.layout)
 
             label = QLabel('Edit the patches below: ')
@@ -151,7 +152,7 @@ class PatchEditorWindowDialog(QDialog):
             # Set the container widget as the scroll area's widget
             scroll_area.setWidget(container_widget)
 
-            # Add the scroll area to the main layout
+            # Add the scroll area to widget_two in dock2
             self.widget_two.layout.addWidget(scroll_area)
 
 
@@ -160,9 +161,11 @@ class showLabels(QWidget):
         QWidget.__init__(self)
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
+        self.directoryName = QLabel('Directory : ---')
         self.labelName = QLabel('Label : ---')
         self.patchName = QLabel('Patch Name : ---')
         self.labelCount = QLabel('Label Count : ---')
+        self.layout.addWidget(self.directoryName)
         self.layout.addWidget(self.labelName)
         self.layout.addWidget(self.patchName)
         self.layout.addWidget(self.labelCount)
@@ -187,7 +190,8 @@ class showPatches(QWidget):
 
     def onClicked(self, item):
         ## Just test parameters and signal emited
-        self.imageClicked.emit([item.text()]) 
+        self.imageClicked.emit([item.text()])
+        print(f"Item Clicked: {item.text()}")
 
     def gather_images(self, item_name):
         self.selectedImages.append(item_name)
