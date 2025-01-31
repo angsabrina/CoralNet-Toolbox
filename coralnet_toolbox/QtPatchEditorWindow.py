@@ -48,7 +48,7 @@ class PatchEditorWindowDialog(QDialog):
 
         ## The DockArea as its name says, is the are where we place the Docks
         dock_area = DockArea(self)
-        ## Create the Docks and change some esthetic of them
+        ## Create the Docks and change some aesthetic of them
         self.dock1 = Dock('Labels', size=(200, 500))
         self.dock2 = Dock('Patches', size=(600, 500))
         self.dock1.hideTitleBar()
@@ -63,75 +63,45 @@ class PatchEditorWindowDialog(QDialog):
             border: 0px solid #000;
             border-radius: 0px;
         }"""
-        self.button = QPushButton('Exit')
+
         self.widget_one = showLabels()
         self.widget_two = showPatches()
+
+        self.load_button = QPushButton('Load images')
+        self.load_button.clicked.connect(self.load_images)
+
+        self.exit_button = QPushButton('Exit')
+        self.exit_button.clicked.connect(self.close)
+
         ## Place the Docks inside the DockArea
+        # Dock 1 is the left area with labels
         dock_area.addDock(self.dock1)
+
+        # Dock 2 is the right area with images/patches
         # Patches dock will be to the right of labels
         dock_area.addDock(self.dock2, 'right', self.dock1)
         
         # self.main_layout.addWidget(label)
         self.main_layout.addWidget(dock_area)
-        self.main_layout.addWidget(self.button)
+        self.main_layout.addWidget(self.exit_button)
+        self.main_layout.addWidget(self.load_button)
 
         ## Add the Widgets inside each dock
         self.dock1.addWidget(self.widget_one)
         self.dock2.addWidget(self.widget_two)
+
         ## This is for set the initial size and position of the main window
         self.setGeometry(200, 100, 2400, 1600)
-        ## Connect the actions to functions, there is a default function called close()
-        self.widget_two.imageClicked.connect(self.dob_click)
-        self.button.clicked.connect(self.close)
-
-    def dob_click(self, feed):
-        self.widget_two.text_box.clear()
-        self.widget_two.text_box.setText(
-            'Title : ' + feed[0]\
-            + '\n\n' +\
-            'Summary : ' + feed[1]
-        )
-
-
-class showLabels(QWidget):
-    def __init__(self):
-        QWidget.__init__(self)
-        self.layout = QVBoxLayout()
-        self.setLayout(self.layout)
-        self.labelName = QLabel('Label : ---')
-        self.patchName = QLabel('Patch Name : ---')
-        self.labelCount = QLabel('Label Count : ---')
-        self.layout.addWidget(self.labelName)
-        self.layout.addWidget(self.patchName)
-        self.layout.addWidget(self.labelCount)
-
-class showPatches(QWidget):
-    imageClicked = QtCore.pyqtSignal([list]) # Signal Created
-    def __init__(self):
-        QWidget.__init__(self)
-        ## 
-        self.layout = QVBoxLayout()  # Vertical Layout
-        self.setLayout(self.layout)
-        self.titleList = QListWidget()
-
-        # Create load image button and call load_images function on click
-        self.loadButton = QPushButton("Load Images")
-        self.loadButton.clicked.connect(self.load_images)
-        self.layout.addWidget(self.loadButton)
-
-        self.titleList.itemDoubleClicked.connect(self.onClicked)
-
-    def onClicked(self, item):
-        ## Just test parameters and signal emited
-        self.imageClicked.emit([item.text(), item.text()+item.text()]) 
 
     def clear_layout(self, layout):
-        while layout.count():
-            child = layout.takeAt(0)
-            if child.widget():
-                child.widget().deleteLater()
+        if layout is not None:
+            if layout.count() is not None:
+                while layout.count():
+                    child = layout.takeAt(0)
+                    if child.widget():
+                        child.widget().deleteLater()
 
-    def load_images(self):
+    def load_images(self, layout):
         directory = QFileDialog.getExistingDirectory(self, "Select Directory")
 
         if directory:
@@ -149,7 +119,7 @@ class showPatches(QWidget):
             print('Number of Images in the selected folder: {}'.format(len(self.list_of_images)))
 
             # Clear the existing layout
-            self.clear_layout(self.layout)
+            self.clear_layout(self.widget_two.layout)
 
             label = QLabel('Edit the patches below: ')
             label.setMaximumHeight(15)
@@ -182,4 +152,45 @@ class showPatches(QWidget):
             scroll_area.setWidget(container_widget)
 
             # Add the scroll area to the main layout
-            self.layout.addWidget(scroll_area)
+            self.widget_two.layout.addWidget(scroll_area)
+
+
+class showLabels(QWidget):
+    def __init__(self):
+        QWidget.__init__(self)
+        self.layout = QVBoxLayout()
+        self.setLayout(self.layout)
+        self.labelName = QLabel('Label : ---')
+        self.patchName = QLabel('Patch Name : ---')
+        self.labelCount = QLabel('Label Count : ---')
+        self.layout.addWidget(self.labelName)
+        self.layout.addWidget(self.patchName)
+        self.layout.addWidget(self.labelCount)
+
+class showPatches(QWidget):
+    # class variables
+    selectedImages = []
+    imageClicked = QtCore.pyqtSignal([list]) # Signal Created
+
+    # class functions
+    def __init__(self):
+        QWidget.__init__(self)
+        ## 
+        self.layout = QVBoxLayout()  # Vertical Layout
+        self.setLayout(self.layout)
+        self.titleList = QListWidget()
+
+        # Call gather_images function on image click
+        self.imageClicked.connect(self.gather_images)
+
+        self.titleList.itemDoubleClicked.connect(self.onClicked)
+
+    def onClicked(self, item):
+        ## Just test parameters and signal emited
+        self.imageClicked.emit([item.text()]) 
+
+    def gather_images(self, item_name):
+        self.selectedImages.append(item_name)
+        print(f"Selected Images: {item_name}")
+
+    
