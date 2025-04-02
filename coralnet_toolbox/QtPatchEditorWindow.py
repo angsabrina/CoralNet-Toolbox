@@ -112,66 +112,69 @@ class PatchEditorWindowDialog(QDialog):
                     if child.widget():
                         child.widget().deleteLater()
 
-    def load_images(self, layout):
+    def load_images(self, directory=None):
         directory = QFileDialog.getExistingDirectory(self, "Select Directory")
 
         if directory:
-            import os
+            self.show_image_gallery(directory)
 
-            self._base_dir = os.getcwd()
-            self._images_dir = os.path.join(self._base_dir, directory)
+        # Make patch editing buttons visible in dock1
+        self.widget_one.layout.addWidget(showEditButtons(self))
 
-            self.list_of_images = os.listdir(directory)
-            self.list_of_images = sorted(self.list_of_images)
+    def show_image_gallery(self, directory):
+        # clear layout before showing image gallery
+        self.clear_layout(self.widget_two.layout)
 
-            # TODO: in the case that the directory chosen only contains folders and not images, 
-            # show a dialog that says no images found in directory
+        self._base_dir = os.getcwd()
+        self._images_dir = os.path.join(self._base_dir, directory)
 
-            # Set directory details in dock1, widget_one
-            self.widget_one.directoryName.setText('Directory: {}'.format(directory))
-            self.widget_one.patchCount.setText('Patch Count: {}'.format(len(self.list_of_images)))
-            self.widget_one.selectedPatchCount.setText('Selected Patch Count: {}'.format(self.numSelectPatches))
+        self.list_of_images = os.listdir(directory)
+        self.list_of_images = sorted(self.list_of_images)
 
-            # Clear the existing layout in widget_two (in dock2)
-            self.clear_layout(self.widget_two.layout)
+        # TODO: in the case that the directory chosen only contains folders and not images, 
+        # show a dialog that says no images found in directory
 
-            label = QLabel('Edit the patches below: ')
-            label.setMaximumHeight(15)
+        # Set directory details in dock1, widget_one
+        self.widget_one.directoryName.setText('Directory: {}'.format(directory))
+        self.widget_one.patchCount.setText('Patch Count: {}'.format(len(self.list_of_images)))
+        self.widget_one.selectedPatchCount.setText('Selected Patch Count: {}'.format(self.numSelectPatches))
 
-            # Create a scroll area
-            scroll_area = QScrollArea()
-            scroll_area.setWidgetResizable(True)
+        # Clear the existing layout in widget_two (in dock2)
+        self.clear_layout(self.widget_two.layout)
 
-            # Create a container widget for the grid layout
-            container_widget = QWidget()
-            grid_layout = QGridLayout(container_widget)
+        label = QLabel('Edit the patches below: ')
+        label.setMaximumHeight(15)
 
-            # Create and add image labels to the grid
-            row, col = 0, 0
-            for image in self.list_of_images:
-                image_path = os.path.join(self._images_dir, image)
-                label = ClickableLabel(directory.split('/')[-1], image_path.split('/')[-1])
-                # label.clicked.connect(self.widget_one.handleLabelClickedInLabels)
-                label.clicked.connect(self.widget_two.handleLabelClickedInPatches)
-                pixmap = QPixmap(image_path)
-                label.setPixmap(pixmap)
-                label.setScaledContents(True)
-                label.setMaximumSize(600, 400)  # limit image size
-                grid_layout.addWidget(label, row, col)
+        # Create a scroll area
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
 
-                col += 1
-                if col > 2:  # 3 columns per row
-                    col = 0
-                    row += 1
+        # Create a container widget for the grid layout
+        container_widget = QWidget()
+        grid_layout = QGridLayout(container_widget)
 
-            # Set the container widget as the scroll area's widget
-            scroll_area.setWidget(container_widget)
+        # Create and add image labels to the grid
+        row, col = 0, 0
+        for image in self.list_of_images:
+            image_path = os.path.join(self._images_dir, image)
+            label = ClickableLabel(image, image_path)
+            label.clicked.connect(self.widget_two.handleLabelClickedInPatches)
+            pixmap = QPixmap(image_path)
+            label.setPixmap(pixmap)
+            label.setScaledContents(True)
+            label.setMaximumSize(600, 400)  # limit image size
+            grid_layout.addWidget(label, row, col)
 
-            # Add the scroll area to widget_two in dock2
-            self.widget_two.layout.addWidget(scroll_area)
+            col += 1
+            if col > 2:  # 3 columns per row
+                col = 0
+                row += 1
 
-            # Make patch editing buttons visible in dock1
-            self.widget_one.layout.addWidget(showEditButtons(self))
+        # Set the container widget as the scroll area's widget
+        scroll_area.setWidget(container_widget)
+
+        # Add the scroll area to widget_two in dock2
+        self.widget_two.layout.addWidget(scroll_area)
 
 class showLabels(QWidget):
 
@@ -185,13 +188,15 @@ class showLabels(QWidget):
         self.patchName = QLabel('Patch File Name : ---')
         self.patchCount = QLabel('Patch Count : ---')
         self.selectedPatchCount = QLabel('Selected Patch Count : ---')
-        self.selectedImageList = QLabel('Selected Image List : ---')
+        self.selectedImagesList = QLabel('Selected Images List : ---')
+        self.selectedImagesPath = QLabel('Selected Images Path : ---')
 
         self.layout.addWidget(self.directoryName)
         self.layout.addWidget(self.patchName)
         self.layout.addWidget(self.patchCount)
         self.layout.addWidget(self.selectedPatchCount)
-        self.layout.addWidget(self.selectedImageList)
+        self.layout.addWidget(self.selectedImagesList)
+        self.layout.addWidget(self.selectedImagesPath)
 
 class showEditButtons(QWidget):
     # class functions
@@ -212,12 +217,12 @@ class showEditButtons(QWidget):
     # for each image in selectedImages list, delete the image
     def deleteImages(self):
         # Check if there are any selected images
-        if not self.parent.widget_two.selectedImages:
+        if not self.parent.widget_two.selectedImagePaths:
             print("No images selected for deletion.")
             return
 
         # Iterate through the selected images and delete them
-        for image in self.parent.widget_two.selectedImages:
+        for image in self.parent.widget_two.selectedImagePaths:
             try:
                 print('Deleting image: ', image)
                 os.remove(image)  # Delete the image file
@@ -228,17 +233,23 @@ class showEditButtons(QWidget):
                 print(f"Error deleting file {image}: {e}")
 
         # Clear the selectedImages list
-        self.parent.widget_two.selectedImages.clear()
+        self.parent.widget_two.selectedImageNames.clear()
+        self.parent.widget_two.selectedImagePaths.clear()
 
         # Update the UI
         self.parent.widget_one.selectedPatchCount.setText('Selected Patch Count : 0')
-        self.parent.widget_one.selectedImageList.setText('Selected Image List : ---')
-        # self.parent.clear_layout(self.parent.widget_two.layout)  # Clear the layout in widget_two
+        self.parent.widget_one.selectedImagesList.setText('Selected Images List : ---')
+        self.parent.widget_one.selectedImagesPath.setText('Selected Images Path : ---')
+        
+        # Refresh the image gallery
+        self.parent.show_image_gallery(self.parent._images_dir)
+
+        # TODO: Show a loading cursor/progress bar while deleting and refreshing image gallery, especially for larger directories
 
 class showPatches(QWidget):
     # class variables
-    selectedImages = []
-    # imageClicked = QtCore.pyqtSignal([list]) # Signal Created
+    selectedImageNames = []
+    selectedImagePaths = []
 
     # class functions
     def __init__(self, parent):
@@ -249,38 +260,38 @@ class showPatches(QWidget):
         self.setLayout(self.layout)
         self.titleList = QListWidget()
 
-        # Call gather_images function on image click
-        # self.imageClicked.connect(self.gather_images)
-
-        # self.titleList.itemDoubleClicked.connect(self.onClicked)
-
     # signal 'slot' 
-    def handleLabelClickedInPatches(self, name, fileName):
-        if fileName not in self.selectedImages:
+    def handleLabelClickedInPatches(self, name, filePath):
+        # imageFilePath = os.path.join(self.parent.directory, name)
+        if name not in self.selectedImageNames:
             # add recently selected image to selectedImages list
-            self.selectedImages.append(fileName)
-            # SEND SIGNAL TO SHOW SELECTED ICON
+            self.selectedImageNames.append(name)
+            self.selectedImagePaths.append(filePath)
+            # TODO: SEND SIGNAL TO SHOW SELECTED ICON
         else:
             # if image was already in selectedImages list, remove it
-            self.selectedImages.remove(fileName)
-            # SEND SIGNAL TO REMOVE SELECTED ICON
-        print('"%s" clicked with %s file name' % (name, fileName))
-        print('Selected Images: ', self.selectedImages)
+            self.selectedImageNames.remove(name)
+            self.selectedImagePaths.remove(filePath)
+            # TODO: SEND SIGNAL TO REMOVE SELECTED ICON
+        print('"%s" clicked with %s file name' % (name, filePath))
+        print('Selected Images: ', self.selectedImageNames)
 
         # Update the patchName and selectedPatchCount labels in widget_one (showLabels instance)
-        self.parent.widget_one.patchName.setText('Patch File Name : {}'.format(fileName))
-        self.parent.widget_one.selectedPatchCount.setText('Selected Patch Count : {}'.format(len(self.selectedImages)))
-        self.parent.widget_one.selectedImageList.setText('Selected Image List : {}'.format(self.selectedImages))
+        # TODO: fix Patch File Name with only patch name and not patch folder + image name
+        self.parent.widget_one.patchName.setText('Patch File Name : {}'.format(filePath.split('/')[-1]))
+        self.parent.widget_one.selectedPatchCount.setText('Selected Patch Count : {}'.format(len(self.selectedImageNames)))
+        self.parent.widget_one.selectedImagesList.setText('Selected Images List : {}'.format(self.selectedImageNames))
+        self.parent.widget_one.selectedImagesPath.setText('Selected Images Path : {}'.format(self.selectedImagePaths))
 
 class ClickableLabel(QLabel):
     clicked = QtCore.pyqtSignal(str, str)
 
-    def __init__(self, imageLabel, imageFileName, parent=None):
-        super(ClickableLabel, self).__init__()
+    def __init__(self, imageLabel, imageFilePath, parent=None):
+        super(ClickableLabel, self).__init__(parent)
         self.imageLabel = imageLabel
-        self.imageFileName = imageFileName
+        self.imageFilePath = imageFilePath
 
     def mousePressEvent(self, event):
         # self.clicked.emit(self.objectName(), self.imageLabel, self.imageFileName)
-        self.clicked.emit(self.imageLabel, self.imageFileName)
+        self.clicked.emit(self.imageLabel, self.imageFilePath)
     
